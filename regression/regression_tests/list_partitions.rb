@@ -3,16 +3,16 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete index: 'list_partitions' if client.indices.exists? index: 'list_partitions'
     end
 
     def run
       # Set everything up
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.create index: 'list_partitions'
       partitions = client.partitions
-      partitions.prepare_index index: 'list_partitions'    # Must be called once per each index
+      RegressionTests.prepare_index "integer", 'list_partitions'    # Must be called once per each index
 
       sleep 1.5
 
@@ -28,7 +28,11 @@ module RegressionTests
       sleep 1.5
 
       # List all partitions
-      ids = partitions.to_a.map{|p| p.id}.sort
+      relevant = partitions.select do |p|
+        e = p.get_endpoints
+        [e.index.index, *e.search.map(&:index)].include?("list_partitions")
+      end
+      ids = relevant.map(&:id).sort
       expected_ids = %w(1 2 3)
       raise "Expected partitions #{expected_ids}, got #{ids}" unless ids == expected_ids
     end

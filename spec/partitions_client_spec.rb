@@ -239,33 +239,4 @@ describe Scalastic::PartitionsClient do
       expect(client.to_a.map{|p| p.id}).to eq %w(1 2)
     end
   end
-
-  describe '#prepare_index' do
-    let(:index) {'index'}
-    let(:expected_mapping) {{properties: {config.partition_selector => {type: 'long'}}}}
-
-    it 'rejects missing index' do
-      expect{client.prepare_index({})}.to raise_error(ArgumentError, 'Missing required argument :index')
-    end
-
-    it 'rejects empty index' do
-      expect{client.prepare_index(index: nil)}.to raise_error(ArgumentError, 'Missing required argument :index')
-    end
-
-    it 'sets the mappings' do
-      expect(indices_client).to receive(:put_mapping).with(index: index, type: '_default_', body: {'_default_' => expected_mapping})
-      expect(indices_client).to receive(:put_mapping).with(index: index, type: 'scalastic', body: {'scalastic' => expected_mapping})
-      client.prepare_index(index: index)
-    end
-
-    context 'with string selector' do
-      let(:expected_mapping) {{properties: {config.partition_selector => {type: config.partition_selector_type}}}}
-
-      it 'sets the mappings' do
-        expect(indices_client).to receive(:put_mapping).with(index: index, type: '_default_', body: {'_default_' => expected_mapping})
-        expect(indices_client).to receive(:put_mapping).with(index: index, type: 'scalastic', body: {'scalastic' => expected_mapping})
-        client.prepare_index(index: index)
-      end
-    end
-  end
 end

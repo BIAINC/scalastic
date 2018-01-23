@@ -1,8 +1,8 @@
 require_relative 'regression_tests'
 
 namespace :regression do
-  task :run do
-    RegressionTests.to_a.shuffle.each do |t|
+  task run: :cleanup do
+    RegressionTests.to_a.each do |t|
       puts "Running #{t.name}"
       t.cleanup
       t.run

@@ -55,39 +55,6 @@ describe Scalastic::Config do
     end
   end
 
-  describe '#partition_selector_type' do
-    it 'is long by default' do
-      expect(config.partition_selector_type).to eq 'long'
-    end
-
-    it 'rejects nils' do
-      expect{config.partition_selector_type = nil}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (string, long)')
-    end
-
-    it 'rejects empty strings' do
-      expect{config.partition_selector_type = ''}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (string, long)')
-    end
-
-    it 'accepts string type' do
-      config.partition_selector_type = 'string'
-      expect(config.partition_selector_type).to eq 'string'
-    end
-
-    it 'accepts long type' do
-      config.partition_selector_type = 'long'
-      expect(config.partition_selector_type).to eq 'long'
-    end
-
-    it 'accepts integer type' do
-      config.partition_selector_type = 'integer'
-      expect(config.partition_selector_type).to eq 'integer'
-    end
-
-    it 'rejects unknown types' do
-      expect{config.partition_selector_type = 'foo'}.to raise_error(ArgumentError, 'Unsupported selector type: foo. Supported types are: (string, long)')
-    end
-  end
-
   describe '#index_endpoint' do
     let(:id) {[1,2,3].sample}
 

@@ -3,7 +3,7 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       %w(extend_partition_1 extend_partition_2).each do |i|
         client.indices.delete index: i if client.indices.exists? index: i
       end
@@ -11,12 +11,12 @@ module RegressionTests
 
     def run
       # Connect to Elasticsearch and set up indices
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       partitions = client.partitions
       client.indices.create index: 'extend_partition_1'
-      partitions.prepare_index index: 'extend_partition_1'
+      RegressionTests.prepare_index "integer", 'extend_partition_1'
       client.indices.create index: 'extend_partition_2'
-      partitions.prepare_index index: 'extend_partition_2'
+      RegressionTests.prepare_index "integer", 'extend_partition_2'
 
       # Create a partition residing in extend_partition_1
       partition = partitions.create(index: 'extend_partition_1', id: 1)
