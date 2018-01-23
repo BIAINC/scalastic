@@ -3,20 +3,20 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       %w(endpoints_1 endpoints_2).each do |i|
         client.indices.delete index: i if client.indices.exists? index: i
       end
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       partitions = client.partitions
 
       client.indices.create index: 'endpoints_1'
       client.indices.create index: 'endpoints_2'
-      partitions.prepare_index index: 'endpoints_1'
-      partitions.prepare_index index: 'endpoints_2'
+      RegressionTests.prepare_index "integer", 'endpoints_1'
+      RegressionTests.prepare_index "integer", 'endpoints_2'
 
       p = partitions[1]
       raise 'Partition should not exist!' if p.exists?
@@ -28,7 +28,7 @@ module RegressionTests
 
       p.index_to index: 'endpoints_1'
       eps = p.get_endpoints
-      raise 'Partition shoudl exist!' unless p.exists?
+      raise 'Partition should exist!' unless p.exists?
       raise 'Unexpected index endpoint' unless eps.index == Scalastic::Partition::Endpoint.new('endpoints_1', nil)
       raise 'Partition should not be read only!' if p.readonly?
 
@@ -47,6 +47,10 @@ module RegressionTests
       eps = p.get_endpoints
       expected = [Scalastic::Partition::Endpoint.new('endpoints_1', nil), Scalastic::Partition::Endpoint.new('endpoints_2', '22')]
       raise 'Unexpected search endpoints' unless eps.search.size == expected.size && expected.all?{|ep| eps.search.include?(ep)}
+    rescue
+      pp $!.message
+      pp $!.backtrace
+      raise
     end
   end
 end

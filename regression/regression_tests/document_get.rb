@@ -3,14 +3,14 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete index: 'document_get' if client.indices.exists? index: 'document_get'
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.create(index: 'document_get')
-      client.partitions.prepare_index(index: 'document_get')
+      RegressionTests.prepare_index("integer", 'document_get')
 
       p = client.partitions.create(id: 1, index: 'document_get')
       p.index(id: 1, type: 'test', body: {title: 'Test'})

@@ -1,11 +1,10 @@
 require 'scalastic/partition'
 require 'scalastic/es_actions_generator'
-require 'scalastic/normalizer'
+require 'scalastic/hash_helper'
 
 module Scalastic
   class PartitionsClient
     include Enumerable
-    include Normalizer
 
     attr_reader(:es_client)
     attr_reader(:config)
@@ -29,7 +28,7 @@ module Scalastic
     def delete(args = {})
       id = args[:id].to_s
       raise(ArgumentError, 'Missing required argument :id') if id.nil? || id.empty?
-      pairs = normalized(es_client.indices.get_aliases).map{|i, d| d['aliases'].keys.select{|a| config.get_partition_id(a) == id}.map{|a| [i, a]}}.flatten(1)
+      pairs = HashHelper.deep_stringify_keys(es_client.indices.get_aliases).map{|i, d| d['aliases'].keys.select{|a| config.get_partition_id(a) == id}.map{|a| [i, a]}}.flatten(1)
       unless pairs.any?
         #TODO: log a warning
         return
@@ -46,17 +45,16 @@ module Scalastic
       partition_ids.each{|pid| yield Partition.new(es_client, config, pid) if block_given?}
     end
 
-    def prepare_index(args)
-      index = args[:index] || raise(ArgumentError, 'Missing required argument :index')
-      mapping = {properties: config.partition_selector_mapping}
-      es_client.indices.put_mapping(index: index, type: '_default_', body: {'_default_' => mapping})
-      es_client.indices.put_mapping(index: index, type: 'scalastic', body: {'scalastic' => mapping})
+    def prepare_index(partition_selector_mapping, index)
+      raise(ArgumentError, 'Missing required argument :index') unless index
+      mapping = {properties: partition_selector_mapping}
+      es_client.indices.put_mapping(index: index, type: 'test', body: {'test' => mapping})
     end
 
     private
 
     def partition_ids
-      aliases = normalized(es_client.indices.get_aliases)
+      aliases = HashHelper.deep_stringify_keys(es_client.indices.get_aliases)
       partition_ids = aliases.map{|_, data| data['aliases'].keys}.flatten.map{|a| config.get_partition_id(a)}.compact.uniq
     end
   end

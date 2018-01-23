@@ -15,7 +15,6 @@ describe Scalastic::Scroller  do
     end
   end
 
-  it {is_expected.to be_kind_of Enumerable}
   it {is_expected.to respond_to :scroll}
 
   describe '#scroll' do
@@ -34,34 +33,44 @@ describe Scalastic::Scroller  do
   end
 
   describe '#each' do
-    let(:scroll) {%w(1m 2m 3h).sample}
-    let(:search_results) {{'_scroll_id' => 'scroll_1'}}
+    let(:scroll) { "2m" }
+    let(:search_results) do
+      [
+        {'_scroll_id' => 'scroll_2', 'hits' => {'hits' => all_search_hits[0..7]}},
+      ]
+    end
     let(:all_search_hits) {10.times.map{|i| double("Hit #{i + 1}")}}
 
-    let(:scroll_results) {[
-      {'_scroll_id' => 'scroll_2', 'hits' => {'hits' => all_search_hits[0..7]}},
-      {'_scroll_id' => 'scroll_3', 'hits' => {'hits' => all_search_hits[8..9]}},
-      {'hits' => {'hits' => []}}
-    ]}
+    let(:scroll_results) do
+      [
+        {'_scroll_id' => 'scroll_3', 'hits' => {'hits' => all_search_hits[8..9]}},
+        {'hits' => {'hits' => []}}
+      ]
+    end
 
     before(:each) do
       scroller.scroll = scroll
 
-      allow(es_client).to receive(:search).and_return(search_results)
+      allow(es_client).to receive(:search).and_return(*search_results)
       allow(es_client).to receive(:scroll).and_return(*scroll_results)
+      allow(es_client).to receive(:clear_scroll)
     end
 
     it 'extracts all hits' do
-      expect(scroller.to_a).to eq all_search_hits
+      expect(scroller.hits.to_a).to eq all_search_hits
     end
 
     it 'passes correct arguments' do
-      expect(es_client).to receive(:search).once.ordered.with(args.merge(search_type: 'scan', scroll: scroll)).and_return(search_results)
-      expect(es_client).to receive(:scroll).ordered.with(body: 'scroll_1', scroll: scroll).and_return(scroll_results[0])
-      expect(es_client).to receive(:scroll).ordered.with(body: 'scroll_2', scroll: scroll).and_return(scroll_results[1])
-      expect(es_client).to receive(:scroll).ordered.with(body: 'scroll_3', scroll: scroll).and_return(scroll_results[2])
+      expect(es_client).to receive(:search).once.ordered.with(args.merge(type: 'test', scroll: scroll)).and_return(*search_results)
+      expect(es_client).to receive(:scroll).ordered.with(scroll_id: 'scroll_2', scroll: scroll).and_return(scroll_results[0])
+      expect(es_client).to receive(:scroll).ordered.with(scroll_id: 'scroll_3', scroll: scroll).and_return(scroll_results[1])
 
-      scroller.to_a
+      scroller.hits.to_a
+    end
+
+    it 'clears the scroll' do
+      expect(es_client).to receive(:clear_scroll)
+      scroller.hits.to_a
     end
   end
 end

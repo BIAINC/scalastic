@@ -3,18 +3,18 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete index: 'nested_selector_bulk' if client.indices.exists? index: 'nested_selector_bulk'
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
 
       # Set up test environment
       client.indices.create index: 'nested_selector_bulk'
       partitions = client.partitions
       partitions.config.partition_selector = 'parent.child.partition_id'
-      partitions.prepare_index index: 'nested_selector_bulk'          # Set up field mapping
+      RegressionTests.prepare_index "integer", 'nested_selector_bulk'          # Set up field mapping
 
       # Create partition
       partition = partitions.create index: 'nested_selector_bulk', id: 1
@@ -80,6 +80,10 @@ module RegressionTests
 
       hits = partition.search['hits']['hits']
       raise "Expected no hits, got: #{hits}" unless hits.empty?
+    rescue
+      pp $!.message
+      pp $!.backtrace
+      raise
     end
   end
 end
