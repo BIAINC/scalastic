@@ -3,12 +3,12 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete(index: 'document_create') if client.indices.exists?(index: 'document_create')
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.create(index: 'document_create')
       client.partitions.prepare_index(index: 'document_create')
 
@@ -16,7 +16,7 @@ module RegressionTests
       partition.create(type: 'test', id: 1, body: {subject: 'Test 1'})
       partition.create(type: 'test', id: 2, body: {subject: 'Test 2'})
 
-      res = partition.create(type: 'test', id: 1, body: {subject: 'Test 1'}) rescue :failed
+      res = partition.create(id: 1, body: {subject: 'Test 1'}) rescue :failed
       raise 'Indexing didn\'t fail' unless res == :failed
       sleep(1.5)
 
@@ -26,7 +26,13 @@ module RegressionTests
         {'_index' => 'document_create', '_type' => 'test', '_id' => '2', '_score' => 1.0, '_source' => {'subject' => 'Test 2', 'scalastic_partition_id' => 1}},
       ]
 
-      raise "Expected: #{expected_hits}, got: #{hits}" unless expected_hits == hits
+      diffs = HashDiff.diff(expected_hits, hits)
+      pp diffs if diffs.any?
+      raise "Expected: #{expected_hits}, got: #{hits}" if diffs.any?
+    rescue
+      pp $!.message
+      pp $!.backtrace
+      raise
     end
   end
 end

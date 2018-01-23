@@ -1,29 +1,29 @@
 require 'spec_helper'
 
-describe Scalastic::Normalizer do
-  let(:normalizer) {Scalastic::Normalizer}
+describe Scalastic::HashHelper do
+  subject{ described_class }
 
-  describe '.normalized' do
+  describe '.deep_stringify_keys' do
     context 'with string keys' do
       let(:input) {{'key1' => 'value1', 'key2' => {'key2.1' => [{'key2.1.1' => 1}, {'key2.1.2' => 2}]}}}
 
-      it 'normalizes the input' do
-        expect(normalizer.normalized(input)).to eq input
+      it 'stringifies the input' do
+        expect(subject.deep_stringify_keys(input)).to eq input
       end
     end
 
     context 'with symbol keys' do
       let(:input) {{key1: 'value1', key2: {:'key2.1' => [{:'key2.1.1' => 1}, {:'key2.1.2' => 2}]}}}
 
-      it 'normalizes the input' do
-        expect(normalizer.normalized(input)).to eq ({'key1' => 'value1', 'key2' => {'key2.1' => [{'key2.1.1' => 1}, {'key2.1.2' => 2}]}})
+      it 'stringifies the input' do
+        expect(subject.deep_stringify_keys(input)).to eq ({'key1' => 'value1', 'key2' => {'key2.1' => [{'key2.1.1' => 1}, {'key2.1.2' => 2}]}})
       end
     end
   end
 
   describe '.safe_get' do
     def safe_get(*keys) 
-      normalizer.safe_get(input, *keys)
+      subject.safe_get(input, *keys)
     end
 
     let(:stringified_input) {{'key1' => 'whatever', 'key2' => {'key3' => 'nested'}}}

@@ -61,16 +61,16 @@ describe Scalastic::Config do
     end
 
     it 'rejects nils' do
-      expect{config.partition_selector_type = nil}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (string, long)')
+      expect{config.partition_selector_type = nil}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (keyword, long)')
     end
 
     it 'rejects empty strings' do
-      expect{config.partition_selector_type = ''}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (string, long)')
+      expect{config.partition_selector_type = ''}.to raise_error(ArgumentError, 'Unsupported selector type: . Supported types are: (keyword, long)')
     end
 
-    it 'accepts string type' do
-      config.partition_selector_type = 'string'
-      expect(config.partition_selector_type).to eq 'string'
+    it 'accepts keyword type' do
+      config.partition_selector_type = 'keyword'
+      expect(config.partition_selector_type).to eq 'keyword'
     end
 
     it 'accepts long type' do
@@ -84,7 +84,7 @@ describe Scalastic::Config do
     end
 
     it 'rejects unknown types' do
-      expect{config.partition_selector_type = 'foo'}.to raise_error(ArgumentError, 'Unsupported selector type: foo. Supported types are: (string, long)')
+      expect{config.partition_selector_type = 'foo'}.to raise_error(ArgumentError, 'Unsupported selector type: foo. Supported types are: (keyword, long)')
     end
   end
 

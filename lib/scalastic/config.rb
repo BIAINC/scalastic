@@ -39,7 +39,7 @@ module Scalastic
 
     def partition_selector_type=(value)
       value = value.to_s
-      raise(ArgumentError, "Unsupported selector type: #{value}. Supported types are: (string, long)") unless %w(string long integer).include?(value)
+      raise(ArgumentError, "Unsupported selector type: #{value}. Supported types are: (keyword, long)") unless %w(keyword long integer).include?(value)
       @partition_selector_type = value
     end
 

@@ -1,9 +1,5 @@
-require 'scalastic/normalizer'
-
 module Scalastic
   class Scroller
-    include Enumerable
-    include Normalizer
 
     def initialize(es_client, args)
       @es_client = es_client
@@ -18,18 +14,20 @@ module Scalastic
 
     attr_reader(:scroll)
 
-    def each(&block)
+    def hits(&block)
       Enumerator.new do |enum|
-        args = @args.merge(search_type: 'scan', scroll: scroll)
+        args = @args.merge(type: 'test', scroll: scroll)
         res = @es_client.search(args)
+        scroll_id = nil
         loop do
-          scroll_id = safe_get(res, '_scroll_id')
-          res = @es_client.scroll(body: scroll_id, scroll: scroll)
-          hits = safe_get(res, 'hits', 'hits')
-          break unless hits.any?
+          hits = HashHelper.safe_get(res, 'hits', 'hits')
+          break if hits.empty?
           hits.each{|h| enum << h}
+          scroll_id = HashHelper.safe_get(res, '_scroll_id')
+          res = @es_client.scroll(scroll_id: scroll_id, scroll: scroll)
         end
-      end.each(&block)
+        @es_client.clear_scroll(scroll_id: scroll_id) if scroll_id
+      end
     end
   end
 end

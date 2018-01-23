@@ -3,12 +3,12 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete index: 'bulk_operations' if client.indices.exists? index: 'bulk_operations'
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       partitions = client.partitions
 
       client.indices.create(index: 'bulk_operations')
@@ -53,7 +53,8 @@ module RegressionTests
         {'_index' => 'bulk_operations', '_type' => 'test', '_id' => '4', '_score' => 1.0, '_source' => {'subject' => 'test4', 'body' => 'Document 4', 'scalastic_partition_id' => 1}},
       ]
 
-      raise 'Unexpected results' unless hits == expected_hits
+      diffs = HashDiff.diff(expected_hits, hits)
+      raise "Unexpected results. Expected: #{expected_hits}. Got: #{hits}. Diffs: #{diffs}" if diffs.any?
 
       res = partition.bulk(body: [
         {delete: {_type: 'test', _id: 1}},
@@ -64,7 +65,7 @@ module RegressionTests
 
       sleep 1.5
 
-      count = partition.search(search_type: 'count')['hits']['total']
+      count = partition.search(size: 0)['hits']['total']
       raise 'Some documents were not removed' unless count == 0
     end
   end

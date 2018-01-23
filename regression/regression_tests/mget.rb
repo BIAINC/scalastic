@@ -3,12 +3,12 @@ module RegressionTests
     extend self
 
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete(index: 'mget') if client.indices.exists?(index: 'mget')
     end
 
     def run
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.create index: 'mget'
       client.partitions.prepare_index index: 'mget'
 
@@ -27,6 +27,10 @@ module RegressionTests
 
       results = partition.mget(body: {docs: [{_type: 'test', _id: 1}, {_type: 'test', _id: 2}, {_type: 'test', _id: 3}]})['docs']
       raise "Expected: #{expected_results}, got: #{results}" unless expected_results == results
+    rescue
+      pp $!.message
+      pp $!.backtrace
+      raise
     end
   end
 end

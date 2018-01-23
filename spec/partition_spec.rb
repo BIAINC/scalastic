@@ -279,7 +279,7 @@ describe Scalastic::Partition do
   end
 
   describe '#bulk' do
-    let(:input) {{body: [{index: {_id: 123, _type: 'test_type', data: {}}}]}}
+    let(:input) {{body: [{index: {_id: 123, data: {}}}]}}
     let(:endpoint) {config.index_endpoint(partition.id)}
     let(:partition_selector) {config.partition_selector}
 
@@ -304,12 +304,12 @@ describe Scalastic::Partition do
     end
 
     context 'creating' do
-      let(:input) {{body: [{create: {_type: 'test', _id: 1, data: {field1: 'value1'}}}, {create: {_type: 'test', _id: 2}}, {field2: 'value2'}]}}
+      let(:input) {{body: [{create: {_id: 1, data: {field1: 'value1'}}}, {create: {_id: 2}}, {field2: 'value2'}]}}
 
       it 'calls ES with correct arguments' do
         expected_es_input = {body: [
-          {create: {_index: endpoint, _type: 'test', _id: 1, data: {field1: 'value1', partition_selector.to_sym => partition.id}}},
-          {create: {_index: endpoint, _type: 'test', _id: 2}},
+          {create: {_index: endpoint, _id: 1, data: {field1: 'value1', partition_selector.to_sym => partition.id}}},
+          {create: {_index: endpoint, _id: 2}},
           {field2: 'value2', partition_selector.to_sym => partition.id}
         ]}
         expect(es_client).to receive(:bulk).with(expected_es_input)
@@ -318,12 +318,12 @@ describe Scalastic::Partition do
     end
 
     context 'indexing' do
-      let(:input) {{body: [{index: {_type: 'test', _id: 1, data: {field1: 'value1'}}}, {index: {_type: 'test', _id: 2}}, {field2: 'value2'}]}}
+      let(:input) {{body: [{index: {_id: 1, data: {field1: 'value1'}}}, {index: {_id: 2}}, {field2: 'value2'}]}}
 
       it 'calls ES with correct arguments' do
         expected_es_input = {body: [
-          {index: {_index: endpoint, _type: 'test', _id: 1, data: {field1: 'value1', partition_selector.to_sym => partition.id}}},
-          {index: {_index: endpoint, _type: 'test', _id: 2}},
+          {index: {_index: endpoint, _id: 1, data: {field1: 'value1', partition_selector.to_sym => partition.id}}},
+          {index: {_index: endpoint, _id: 2}},
           {field2: 'value2', partition_selector.to_sym => partition.id}
         ]}
         expect(es_client).to receive(:bulk).with(expected_es_input)
@@ -332,12 +332,12 @@ describe Scalastic::Partition do
     end
 
     context 'updating' do
-      let(:input) {{body: [{update: {_type: 'test', _id: 1, data: {doc: {field1: 'value1'}}}}, {update: {_type: 'test', _id: 2}}, {doc: {field2: 'value2'}}]}}
+      let(:input) {{body: [{update: {_id: 1, data: {doc: {field1: 'value1'}}}}, {update: {_id: 2}}, {doc: {field2: 'value2'}}]}}
 
       it 'calls ES with correct arguments' do
         expected_es_input = {body: [
-          {update: {_index: endpoint, _type: 'test', _id: 1, data: {doc: {field1: 'value1'}}}},
-          {update: {_index: endpoint, _type: 'test', _id: 2}},
+          {update: {_index: endpoint, _id: 1, data: {doc: {field1: 'value1'}}}},
+          {update: {_index: endpoint, _id: 2}},
           {doc: {field2: 'value2'}}
         ]}
         expect(es_client).to receive(:bulk).with(expected_es_input)
@@ -346,12 +346,12 @@ describe Scalastic::Partition do
     end
 
     context 'deleting' do
-      let(:input) {{body: [{delete: {_type: 'test', _id: 1}}, {delete: {_type: 'test', _id: 2}}]}}
+      let(:input) {{body: [{delete: {_id: 1}}, {delete: {_id: 2}}]}}
 
       it 'calls ES with correct arguments' do
         expected_es_input = {body: [
-          {delete: {_index: endpoint, _type: 'test', _id: 1}},
-          {delete: {_index: endpoint, _type: 'test', _id: 2}},
+          {delete: {_index: endpoint, _id: 1}},
+          {delete: {_index: endpoint, _id: 2}},
         ]}
         expect(es_client).to receive(:bulk).with(expected_es_input)
         partition.bulk(input)
@@ -618,8 +618,8 @@ describe Scalastic::Partition do
 
   describe '#mget' do
     let(:mget_results) {double('from mget')}
-    let(:ids_input) {{body: {type: 'test', ids: [1,2,3]}}}
-    let(:docs_input) {{body: {docs: [{_type: 'test', _id: 1}, {_type: 'test', _id: 2}]}}}
+    let(:ids_input) {{body: {ids: [1,2,3]}}}
+    let(:docs_input) {{body: {docs: [{_id: 1}, {_id: 2}]}}}
     let(:input) {[ids_input, docs_input].sample}
 
     before(:each) do
@@ -651,7 +651,7 @@ describe Scalastic::Partition do
 
   describe '#create' do
     let(:create_results) {double('from create')}
-    let(:args) {{id: 1, type: 'test', body: {subject: 'This is a test'}}}
+    let(:args) {{id: 1, body: {subject: 'This is a test'}}}
 
     before(:each) do
       allow(es_client).to receive(:create).and_return(create_results)

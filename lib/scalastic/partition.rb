@@ -1,11 +1,10 @@
 require 'scalastic/es_actions_generator'
 require 'scalastic/partition_selector'
 require 'scalastic/scroller'
-require 'scalastic/normalizer'
+require 'scalastic/hash_helper'
 
 module Scalastic
   class Partition
-    include Normalizer
 
     Endpoint = Struct.new(:index, :routing)
     Endpoints = Struct.new(:index, :search)
@@ -29,7 +28,7 @@ module Scalastic
       raise(ArgumentError, 'Missing required argument :index') if index.nil? || index.to_s.empty?
 
       index_alias = config.index_endpoint(id)
-      indices = normalized(es_client.indices.get_aliases(name: index_alias)).select{|i, d| d['aliases'].any?}.keys
+      indices = HashHelper.deep_stringify_keys(get_aliases(index_alias)).select{|i, d| d['aliases'].any?}.keys
       actions = indices.map{|i| {remove: {index: i, alias: index_alias}}}
       actions << {add: EsActionsGenerator.new_index_alias(config, args.merge(id: id))}
       actions << {add: EsActionsGenerator.new_search_alias(config, args.merge(id: id))}
@@ -78,8 +77,11 @@ module Scalastic
 
     def exists?
       names = [config.search_endpoint(id), config.index_endpoint(id)]
-      all_aliases = normalized(es_client.indices.get_aliases name: names.join(','))
+      alias_response = get_aliases(*names)
+      all_aliases = HashHelper.deep_stringify_keys(alias_response)
       all_aliases.any?{|_index, data| data['aliases'].any?}
+    rescue Elasticsearch::Transport::Transport::Errors::NotFound
+      false
     end
 
     def bulk(args)
@@ -92,15 +94,7 @@ module Scalastic
     end
 
     def delete_by_query(args)
-      args = args.merge(index: config.search_endpoint(id), search_type: 'scan', scroll: '1m', size: 500, fields: [])
-      results = es_client.search(args)
-      loop do
-        scroll_id = results['_scroll_id']
-        results = es_client.scroll(scroll_id: scroll_id, scroll: '1m')
-        ops = results['hits']['hits'].map{|h| delete_op(h)}
-        break if ops.empty?
-        es_client.bulk(body: ops)
-      end
+      es_client.delete_by_query({index: config.search_endpoint(id)}.merge(args))
     end
 
     def inspect
@@ -110,13 +104,30 @@ module Scalastic
     def get_endpoints
       sa = config.search_endpoint(id)
       ia = config.index_endpoint(id)
-      aliases = normalized(es_client.indices.get_aliases name: [sa, ia].join(','))
+      aliases = HashHelper.deep_stringify_keys(get_aliases(sa, ia))
       sas = aliases.map{|i, d| [i, d['aliases'][sa]]}.reject{|_i, sa| sa.nil?}
       ias = aliases.map{|i, d| [i, d['aliases'][ia]]}.reject{|_i, ia| ia.nil?}
       Endpoints.new(
         ias.map{|i, ia| Endpoint.new(i, ia['index_routing']).freeze}.first,
         sas.map{|i, sa| Endpoint.new(i, sa['search_routing']).freeze}.freeze
       ).freeze
+    end
+
+    # odd rigamarole because Elastic removed the GET verb from /indices/_aliases.
+    # Gotta fall back to /indices/_alias, but handle 404 errors cleanly
+    def get_aliases(*names)
+      raise "no" unless names.all?{|n| n.is_a?(String)}
+      return {} if names.empty?
+      # The usual case is that the names are all there, so we can just call get_alias
+      raw = es_client.indices.get_alias(name: names.join(","))
+      HashHelper.deep_stringify_keys(raw)
+    rescue Elasticsearch::Transport::Transport::Errors::NotFound
+      # one or more of the aliases isn't there. Get all aliases and filter down to what was requested.
+      raw = es_client.indices.get_aliases
+      HashHelper.transform_values(raw) do |k, v|
+        selected = HashHelper.slice(v["aliases"], *names)
+        selected.empty? ? nil : {'aliases' => selected}
+      end
     end
 
     def index_to(args)
@@ -135,7 +146,7 @@ module Scalastic
 
     def scroll(args)
       args = args.merge(index: config.search_endpoint(id))
-      Scroller.new(es_client, args)
+      Scroller.new(es_client, args).hits
     end
 
     private
@@ -159,7 +170,9 @@ module Scalastic
     end
 
     def delete_op(hit)
-      {delete: {_index: hit['_index'], _type: hit['_type'], _id: hit['_id']}}
+      ret = {delete: {_index: hit['_index'], _id: hit['_id']}}
+      ret[:_type] = hit['_type'] if hit['_type']
+      ret
     end
 
     def selector

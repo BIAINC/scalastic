@@ -3,13 +3,13 @@ module RegressionTests
     extend self
     
     def cleanup
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       client.indices.delete index: 'delete_partition' if client.indices.exists? index: 'delete_partition'
     end
 
     def run
       # Connect to Elasticsearch and create an index
-      client = Elasticsearch::Client.new
+      client = RegressionTests.es_client
       partitions = client.partitions
       client.indices.create index: 'delete_partition'
       partitions.prepare_index index: 'delete_partition'
@@ -25,6 +25,10 @@ module RegressionTests
       sleep 1.5
 
       raise 'Partition still exists' if partitions[2].exists?
+    rescue
+      pp $!.message
+      pp $!.backtrace
+      raise
     end
   end
 end
