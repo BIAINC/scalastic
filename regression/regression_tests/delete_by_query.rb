@@ -12,7 +12,7 @@ module RegressionTests
       partitions = client.partitions
 
       client.indices.create(index: 'delete_by_query')
-      partitions.prepare_index(index: 'delete_by_query')
+      RegressionTests.prepare_index("integer", 'delete_by_query')
 
       p = partitions.create(index: 'delete_by_query', id: 1)
       p.index(id: 1, type: 'test')
@@ -20,7 +20,7 @@ module RegressionTests
       p.index(id: 3, type: 'test')
       sleep 1.5
 
-      p.delete_by_query(body:{query:{terms:{_id: [1,3]}}})
+      p.delete_by_query(type: 'test', body:{query:{terms:{_id: [1,3]}}})
       sleep 1.5
 
       expected_hits = [{'_index' => 'delete_by_query', '_type' => 'test', '_id' => '2', '_score' => 1.0, '_source' => {'scalastic_partition_id' => 1}}]

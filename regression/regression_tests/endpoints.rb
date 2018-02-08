@@ -15,8 +15,8 @@ module RegressionTests
 
       client.indices.create index: 'endpoints_1'
       client.indices.create index: 'endpoints_2'
-      partitions.prepare_index index: 'endpoints_1'
-      partitions.prepare_index index: 'endpoints_2'
+      RegressionTests.prepare_index "integer", 'endpoints_1'
+      RegressionTests.prepare_index "integer", 'endpoints_2'
 
       p = partitions[1]
       raise 'Partition should not exist!' if p.exists?

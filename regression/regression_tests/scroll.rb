@@ -12,7 +12,7 @@ module RegressionTests
       client = RegressionTests.es_client
       client.indices.create index: 'scrolling'
       partitions = client.partitions
-      partitions.prepare_index index: 'scrolling'
+      RegressionTests.prepare_index "integer", 'scrolling'
 
       p = partitions.create id: 1, index: 'scrolling'
 

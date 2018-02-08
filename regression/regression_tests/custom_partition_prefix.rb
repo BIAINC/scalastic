@@ -14,7 +14,7 @@ module RegressionTests
       partitions.config.partition_prefix = 'custom'
 
       client.indices.create index: 'custom_partition_prefix'
-      partitions.prepare_index index: 'custom_partition_prefix'     # Must be called only once per index
+      RegressionTests.prepare_index "integer", 'custom_partition_prefix'     # Must be called only once per index
 
       partition = partitions.create index: 'custom_partition_prefix', id: 1
       sleep 1.5

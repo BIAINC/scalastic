@@ -45,11 +45,10 @@ module Scalastic
       partition_ids.each{|pid| yield Partition.new(es_client, config, pid) if block_given?}
     end
 
-    def prepare_index(args)
-      index = args[:index] || raise(ArgumentError, 'Missing required argument :index')
-      mapping = {properties: config.partition_selector_mapping}
-      es_client.indices.put_mapping(index: index, type: '_default_', body: {'_default_' => mapping})
-      # es_client.indices.put_mapping(index: index, type: 'document', body: {'scalastic' => mapping})
+    def prepare_index(partition_selector_mapping, index)
+      raise(ArgumentError, 'Missing required argument :index') unless index
+      mapping = {properties: partition_selector_mapping}
+      es_client.indices.put_mapping(index: index, type: 'test', body: {'test' => mapping})
     end
 
     private

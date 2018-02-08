@@ -12,7 +12,7 @@ module RegressionTests
       client = RegressionTests.es_client
       client.indices.create index: 'list_partitions'
       partitions = client.partitions
-      partitions.prepare_index index: 'list_partitions'    # Must be called once per each index
+      RegressionTests.prepare_index "integer", 'list_partitions'    # Must be called once per each index
 
       sleep 1.5
 

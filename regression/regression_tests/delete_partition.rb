@@ -12,7 +12,7 @@ module RegressionTests
       client = RegressionTests.es_client
       partitions = client.partitions
       client.indices.create index: 'delete_partition'
-      partitions.prepare_index index: 'delete_partition'
+      RegressionTests.prepare_index "integer", 'delete_partition'
 
       # Create partitions
       partitions.create index: 'delete_partition', id: 1

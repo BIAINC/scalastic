@@ -14,9 +14,9 @@ module Scalastic
 
     attr_reader(:scroll)
 
-    def hits(&block)
+    def hits
       Enumerator.new do |enum|
-        args = @args.merge(type: 'test', scroll: scroll)
+        args = {scroll: scroll}.merge(@args)
         res = @es_client.search(args)
         scroll_id = nil
         loop do

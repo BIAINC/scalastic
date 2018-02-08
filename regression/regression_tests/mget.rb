@@ -10,7 +10,7 @@ module RegressionTests
     def run
       client = RegressionTests.es_client
       client.indices.create index: 'mget'
-      client.partitions.prepare_index index: 'mget'
+      RegressionTests.prepare_index "integer", 'mget'
 
       partition = client.partitions.create id: 1, index: 'mget'
       partition.index id: 1, type: 'test', body: {subject: 'Test 1'}

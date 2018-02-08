@@ -15,8 +15,8 @@ module RegressionTests
       client.indices.create index: 'destinations_1'
       client.indices.create index: 'destinations_2'
 
-      partitions.prepare_index index: 'destinations_1'
-      partitions.prepare_index index: 'destinations_2'
+      RegressionTests.prepare_index "integer", 'destinations_1'
+      RegressionTests.prepare_index "integer", 'destinations_2'
 
       p = partitions.create id: 1, index: 'destinations_1'
       p.extend_to(index: 'destinations_2')

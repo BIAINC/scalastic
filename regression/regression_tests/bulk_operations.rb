@@ -12,7 +12,7 @@ module RegressionTests
       partitions = client.partitions
 
       client.indices.create(index: 'bulk_operations')
-      partitions.prepare_index(index: 'bulk_operations')
+      RegressionTests.prepare_index("integer", 'bulk_operations')
 
       partition = partitions.create(index: 'bulk_operations', id: 1)
       sleep 1.5

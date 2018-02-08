@@ -12,7 +12,7 @@ module RegressionTests
       partitions = client.partitions
 
       client.indices.create index: 'msearch'
-      partitions.prepare_index index: 'msearch'
+      RegressionTests.prepare_index "integer", 'msearch'
 
       partition = partitions.create(index: 'msearch', id: 1)
       partition.index(id: '1:1', type: 'test', body: {title: 'Document 1:1'})

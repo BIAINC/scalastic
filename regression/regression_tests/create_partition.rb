@@ -14,7 +14,7 @@ module RegressionTests
       
       # Create an index for the test.
       client.indices.create index: 'create_partition'
-      partitions.prepare_index index: 'create_partition'   # Needs to be called only once per index
+      RegressionTests.prepare_index "integer", 'create_partition'   # Needs to be called only once per index
 
       # Create a partition
       partition = partitions.create index: 'create_partition', id: 1

@@ -59,7 +59,7 @@ describe Scalastic::Partition do
 
     def mock_indices_client
       double('ES indices client').tap do |c|
-        allow(c).to receive(:get_aliases).and_return(existing_aliases_data)
+        allow(c).to receive(:get_alias).and_return(existing_aliases_data)
         allow(c).to receive(:update_aliases)
       end
     end
@@ -237,13 +237,13 @@ describe Scalastic::Partition do
 
     def mock_indices_client
       double('indices').tap do |i|
-        allow(i).to receive(:get_aliases).and_return(es_aliases)
+        allow(i).to receive(:get_alias).and_return(es_aliases)
       end
     end
 
     it 'calls indices client' do
       endpoints = [config.search_endpoint(id), config.index_endpoint(id)].join(',')
-      expect(indices_client).to receive(:get_aliases).once.with(name: endpoints).and_return(es_aliases)
+      expect(indices_client).to receive(:get_alias).once.with(name: endpoints).and_return(es_aliases)
       partition.exists?
     end
 
@@ -361,17 +361,20 @@ describe Scalastic::Partition do
 
   describe '#delete_by_query' do
     let(:input) {{body: {query: {term: {field: 'value'}}}}}
-    let(:search_result) {{'_scroll_id' => 'scroll id 2'}}
-    let(:scroll_results) do
+    let(:search_results) do
       [
         {'_scroll_id' => 'scroll id 2', 'hits' => {'total' => 2, 'hits' => [{'_index' => 'index1', '_id' => '1', '_type' => 'type1'}]}},
+      ]
+    end
+    let(:scroll_results) do
+      [
         {'_scroll_id' => 'scroll id 3', 'hits' => {'total' => 2, 'hits' => [{'_index' => 'index2', '_id' => '2', '_type' => 'type2'}]}},
         {'_scroll_id' => 'scroll id 4', 'hits' => {'total' => 2, 'hits' => []}}
       ]
     end
 
     before(:each) do
-      allow(es_client).to receive(:search).and_return(search_result)
+      allow(es_client).to receive(:search).and_return(*search_results)
       allow(es_client).to receive(:scroll).and_return(*scroll_results)
       allow(es_client).to receive(:bulk)
     end
@@ -383,7 +386,7 @@ describe Scalastic::Partition do
     end
 
     it 'performs a search' do
-      expect(es_client).to receive(:search).once.with(input.merge(index: search_endpoint, search_type: 'scan', scroll: '1m', size: 500, fields: [])).and_return(search_result)
+      expect(es_client).to receive(:search).once.with(input.merge(index: search_endpoint, scroll: '1m', size: 500, stored_fields: [])).and_return(*search_results)
       partition.delete_by_query(input)
     end
   end
@@ -404,13 +407,13 @@ describe Scalastic::Partition do
 
     def mock_indices_client
       double('indices').tap do |ic|
-        allow(ic).to receive(:get_aliases).and_return(get_aliases_response)
+        allow(ic).to receive(:get_alias).and_return(get_aliases_response)
       end
     end
 
     it 'gets aliases from ES' do
       expected_names = [search_endpoint, index_endpoint].join(',')
-      expect(es_client.indices).to receive(:get_aliases).once.with(name: expected_names).and_return(get_aliases_response)
+      expect(es_client.indices).to receive(:get_alias).once.with(name: expected_names).and_return(get_aliases_response)
       endpoints
     end
 
@@ -676,10 +679,12 @@ describe Scalastic::Partition do
       partition.scroll(args)
     end
 
-    it 'returns the scroller' do
+    it 'returns the hits' do
       scroller = Scalastic::Scroller.new(es_client, args_with_index)
       allow(Scalastic::Scroller).to receive(:new).once.and_return(scroller)
-      expect(partition.scroll(args)).to eq scroller
+      hits = double("hits")
+      expect(scroller).to receive(:hits).and_return(hits)
+      expect(partition.scroll(args)).to be hits
     end
   end
 

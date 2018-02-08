@@ -94,7 +94,17 @@ module Scalastic
     end
 
     def delete_by_query(args)
-      es_client.delete_by_query({index: config.search_endpoint(id)}.merge(args))
+      # We're not using ES's delete_by_query endpoint because it doesn't have stable
+      # semantics across v2.4-6.1. We can go to using it once we're not straddling versions
+      args = args.merge(index: config.search_endpoint(id), scroll: '1m', size: 500, stored_fields: [])
+      results = es_client.search(args)
+      loop do
+        ops = results['hits']['hits'].map{|h| delete_op(h)}
+        break if ops.empty?
+        es_client.bulk(body: ops)
+        scroll_id = results['_scroll_id']
+        results = es_client.scroll(scroll_id: scroll_id, scroll: '1m')
+      end
     end
 
     def inspect
@@ -116,7 +126,7 @@ module Scalastic
     # odd rigamarole because Elastic removed the GET verb from /indices/_aliases.
     # Gotta fall back to /indices/_alias, but handle 404 errors cleanly
     def get_aliases(*names)
-      raise "no" unless names.all?{|n| n.is_a?(String)}
+      raise(ArgumentError,"Invalid names type") unless names.all?{|n| n.is_a?(String)}
       return {} if names.empty?
       # The usual case is that the names are all there, so we can just call get_alias
       raw = es_client.indices.get_alias(name: names.join(","))
@@ -125,7 +135,7 @@ module Scalastic
       # one or more of the aliases isn't there. Get all aliases and filter down to what was requested.
       raw = es_client.indices.get_aliases
       HashHelper.transform_values(raw) do |k, v|
-        selected = HashHelper.slice(v["aliases"], *names)
+        selected = HashHelper.slice(v["aliases"] || v[:aliases], *names)
         selected.empty? ? nil : {'aliases' => selected}
       end
     end
@@ -171,7 +181,7 @@ module Scalastic
 
     def delete_op(hit)
       ret = {delete: {_index: hit['_index'], _id: hit['_id']}}
-      ret[:_type] = hit['_type'] if hit['_type']
+      ret[:delete][:_type] = hit['_type'] if hit['_type']
       ret
     end
 

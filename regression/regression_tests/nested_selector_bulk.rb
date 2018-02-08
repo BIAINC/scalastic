@@ -14,7 +14,7 @@ module RegressionTests
       client.indices.create index: 'nested_selector_bulk'
       partitions = client.partitions
       partitions.config.partition_selector = 'parent.child.partition_id'
-      partitions.prepare_index index: 'nested_selector_bulk'          # Set up field mapping
+      RegressionTests.prepare_index "integer", 'nested_selector_bulk'          # Set up field mapping
 
       # Create partition
       partition = partitions.create index: 'nested_selector_bulk', id: 1
